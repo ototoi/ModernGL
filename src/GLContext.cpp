@@ -577,7 +577,7 @@ GLContext LoadCurrentGLContext() {
 	int width = 1024;
     int height = 1024;
     EGLDisplay display;
-    EGLContext context;
+    EGLContext ctx;
 
     // 1. EGLの初期化
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -629,12 +629,12 @@ GLContext LoadCurrentGLContext() {
         return context;
     }
     // 5. コンテキストを生成し、カレントにする
-    context = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
-    if (context == EGL_NO_CONTEXT) {
+    ctx = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
+    if (ctx == EGL_NO_CONTEXT) {
         MGLError_Set("failed to eglCreateContext");
         return context;
     }
-    eglStatus = eglMakeCurrent(display, surface, surface, context);
+    eglStatus = eglMakeCurrent(display, surface, surface, ctx);
     if (eglStatus == EGL_FALSE) {
         MGLError_Set("failed to eglMakeCurrent");
     }
@@ -653,7 +653,7 @@ GLContext CreateGLContext(PyObject * settings) {
 	int width = 1024;
     int height = 1024;
     EGLDisplay display;
-    EGLContext context;
+    EGLContext ctx;
 
     // 1. EGLの初期化
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -705,12 +705,12 @@ GLContext CreateGLContext(PyObject * settings) {
         return context;
     }
     // 5. コンテキストを生成し、カレントにする
-    context = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
-    if (context == EGL_NO_CONTEXT) {
+    ctx = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
+    if (ctx == EGL_NO_CONTEXT) {
         MGLError_Set("failed to eglCreateContext");
         return context;
     }
-    eglStatus = eglMakeCurrent(display, surface, surface, context);
+    eglStatus = eglMakeCurrent(display, surface, surface, ctx);
     if (eglStatus == EGL_FALSE) {
         MGLError_Set("failed to eglMakeCurrent");
     }
