@@ -730,7 +730,7 @@ void DestroyGLContext(const GLContext & context) {
 	if (context.display) 
     {
 		if (context.window) {
-			eglDestroySurface((EGLContext)context.display, eglSurface);
+			eglDestroySurface((EGLContext)context.display, (EGLSurface)context.window);
 		}
 
 		eglTerminate((EGLContext)context.display);
