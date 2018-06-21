@@ -2,6 +2,8 @@
 
 #include "Python.hpp"
 
+#define GL_CONTEXT_USE_EGL 1
+
 #if defined(_WIN32) || defined(_WIN64)
 
 struct GLContext {
@@ -20,12 +22,21 @@ struct GLContext {
 
 #else
 
+#if GL_CONTEXT_USE_EGL
+struct GLContext {
+	void * display;
+    void * window;
+	void * context;
+	bool standalone;
+};
+#else
 struct GLContext {
 	void * display;
 	void * window;
 	void * context;
 	bool standalone;
 };
+#endif
 
 #endif
 

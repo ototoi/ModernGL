@@ -2,6 +2,9 @@
 
 #include "Error.hpp"
 
+
+
+
 struct GLVersion {
 	int major;
 	int minor;
@@ -558,8 +561,185 @@ void DestroyGLContext(const GLContext & context) {
 
 #else
 
-#include <GL/glx.h>
+#if GL_CONTEXT_USE_EGL
+#include <EGL/egl.h>
+#endif
+
 #include <GL/gl.h>
+
+
+#if GL_CONTEXT_USE_EGL
+
+GLContext LoadCurrentGLContext() {
+	GLContext context = {};
+	context.standalone = false;
+
+	int width = 1024;
+    int height = 1024;
+    EGLDisplay display;
+    EGLContext context;
+
+    // 1. EGLの初期化
+    display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (display == EGL_NO_DISPLAY) {
+        MGLError_Set("failed to eglGetDisplay");
+        return context;
+    }
+    EGLint major, minor;
+    EGLBoolean eglStatus = eglInitialize(display, &major, &minor);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglInitialize");
+        return context;
+    }
+    //fprintf(stderr, "EGL Version %d . %d\n", major, minor);
+
+    // 2. RGBやdepthバッファのビット数等の設定を選択
+    static const EGLint configAttribs[] = {
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+        EGL_DEPTH_SIZE, 8,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+    EGLint numConfigs;
+    EGLConfig eglCfg;
+    eglStatus = eglChooseConfig(display, configAttribs, &eglCfg, 1, &numConfigs);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglChooseConfig");
+        return context;
+    }
+    // 3. サーフェスの生成
+    const EGLint pbufferAttribs[] = {
+        EGL_WIDTH, width,
+        EGL_HEIGHT, height,
+        EGL_NONE
+    };
+    
+    EGLSurface surface = eglCreatePbufferSurface(display, eglCfg, pbufferAttribs);
+    if (surface == EGL_NO_SURFACE) {
+        MGLError_Set("failed to eglCreatePbufferSurface");
+        return context;
+    }
+    // 4. API（OpenGL）のバインド
+    eglStatus = eglBindAPI(EGL_OPENGL_API);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglBindAPI");
+        return context;
+    }
+    // 5. コンテキストを生成し、カレントにする
+    context = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
+    if (context == EGL_NO_CONTEXT) {
+        MGLError_Set("failed to eglCreateContext");
+        return context;
+    }
+    eglStatus = eglMakeCurrent(display, surface, surface, context);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglMakeCurrent");
+    }
+
+	context.display = (void *)display;
+    context.window = (void*)surface;
+	context.context = (void *)ctx;
+
+	return context;
+}
+
+GLContext CreateGLContext(PyObject * settings) {
+	GLContext context = {};
+	context.standalone = true;
+
+	int width = 1024;
+    int height = 1024;
+    EGLDisplay display;
+    EGLContext context;
+
+    // 1. EGLの初期化
+    display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (display == EGL_NO_DISPLAY) {
+        MGLError_Set("failed to eglGetDisplay");
+        return context;
+    }
+    EGLint major, minor;
+    EGLBoolean eglStatus = eglInitialize(display, &major, &minor);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglInitialize");
+        return context;
+    }
+    //fprintf(stderr, "EGL Version %d . %d\n", major, minor);
+
+    // 2. RGBやdepthバッファのビット数等の設定を選択
+    static const EGLint configAttribs[] = {
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+        EGL_DEPTH_SIZE, 8,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+    EGLint numConfigs;
+    EGLConfig eglCfg;
+    eglStatus = eglChooseConfig(display, configAttribs, &eglCfg, 1, &numConfigs);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglChooseConfig");
+        return context;
+    }
+    // 3. サーフェスの生成
+    const EGLint pbufferAttribs[] = {
+        EGL_WIDTH, width,
+        EGL_HEIGHT, height,
+        EGL_NONE
+    };
+    
+    EGLSurface surface = eglCreatePbufferSurface(display, eglCfg, pbufferAttribs);
+    if (surface == EGL_NO_SURFACE) {
+        MGLError_Set("failed to eglCreatePbufferSurface");
+        return context;
+    }
+    // 4. API（OpenGL）のバインド
+    eglStatus = eglBindAPI(EGL_OPENGL_API);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglBindAPI");
+        return context;
+    }
+    // 5. コンテキストを生成し、カレントにする
+    context = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
+    if (context == EGL_NO_CONTEXT) {
+        MGLError_Set("failed to eglCreateContext");
+        return context;
+    }
+    eglStatus = eglMakeCurrent(display, surface, surface, context);
+    if (eglStatus == EGL_FALSE) {
+        MGLError_Set("failed to eglMakeCurrent");
+    }
+
+	context.display = (void *)display;
+    context.window = (void*)surface;
+	context.context = (void *)ctx;
+
+	return context;
+}
+
+void DestroyGLContext(const GLContext & context) {
+	if (!context.standalone) {
+		return;
+	}
+
+	if (context.display) 
+    {
+		if (context.window) {
+			eglDestroySurface((EGLContext)context.display, eglSurface);
+		}
+
+		eglTerminate((EGLContext)context.display);
+		// context.display = 0;
+	}
+}
+
+#else
+#include <GL/glx.h>
 
 #define GLX_CONTEXT_MAJOR_VERSION 0x2091
 #define GLX_CONTEXT_MINOR_VERSION 0x2092
@@ -752,5 +932,9 @@ void DestroyGLContext(const GLContext & context) {
 		// context.display = 0;
 	}
 }
+
+#endif
+
+
 
 #endif

@@ -39,7 +39,7 @@ if sys.version_info < (3, 5):
 
 libraries = {
     'windows': ['gdi32', 'opengl32', 'user32'],
-    'linux': ['GL', 'dl', 'X11'],
+    'linux': ['GL', 'dl', 'X11', 'EGL'],
     'cygwin': ['GL', 'X11'],
     'darwin': [],
 }
@@ -58,10 +58,18 @@ extra_linker_args = {
     'darwin': ['-framework', 'OpenGL', '-Wno-deprecated'],
 }
 
+library_dirs = {
+    'windows': [],
+    'linux': ['/usr/lib/nvidia-384'],
+    'cygwin': [],
+    'darwin': [],
+}
+
 mgl = Extension(
     name='moderngl.mgl',
     include_dirs=['src'],
     define_macros=[],
+    library_dirs=library_dirs[target],
     libraries=libraries[target],
     extra_compile_args=extra_compile_args[target],
     extra_link_args=extra_linker_args[target],
