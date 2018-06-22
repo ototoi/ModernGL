@@ -2,7 +2,7 @@
 
 #include "Error.hpp"
 
-
+#define GL_CONTEXT_USE_EGL 1
 
 
 struct GLVersion {
@@ -571,79 +571,7 @@ void DestroyGLContext(const GLContext & context) {
 #if GL_CONTEXT_USE_EGL
 
 GLContext LoadCurrentGLContext() {
-	GLContext context = {};
-	context.standalone = false;
-
-	int width = 1024;
-    int height = 1024;
-    EGLDisplay display;
-    EGLContext ctx;
-
-    // 1. EGLの初期化
-    display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (display == EGL_NO_DISPLAY) {
-        MGLError_Set("failed to eglGetDisplay");
-        return context;
-    }
-    EGLint major, minor;
-    EGLBoolean eglStatus = eglInitialize(display, &major, &minor);
-    if (eglStatus == EGL_FALSE) {
-        MGLError_Set("failed to eglInitialize");
-        return context;
-    }
-    //fprintf(stderr, "EGL Version %d . %d\n", major, minor);
-
-    // 2. RGBやdepthバッファのビット数等の設定を選択
-    static const EGLint configAttribs[] = {
-        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
-        EGL_BLUE_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_RED_SIZE, 8,
-        EGL_DEPTH_SIZE, 8,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-        EGL_NONE
-    };
-    EGLint numConfigs;
-    EGLConfig eglCfg;
-    eglStatus = eglChooseConfig(display, configAttribs, &eglCfg, 1, &numConfigs);
-    if (eglStatus == EGL_FALSE) {
-        MGLError_Set("failed to eglChooseConfig");
-        return context;
-    }
-    // 3. サーフェスの生成
-    const EGLint pbufferAttribs[] = {
-        EGL_WIDTH, width,
-        EGL_HEIGHT, height,
-        EGL_NONE
-    };
-    
-    EGLSurface surface = eglCreatePbufferSurface(display, eglCfg, pbufferAttribs);
-    if (surface == EGL_NO_SURFACE) {
-        MGLError_Set("failed to eglCreatePbufferSurface");
-        return context;
-    }
-    // 4. API（OpenGL）のバインド
-    eglStatus = eglBindAPI(EGL_OPENGL_API);
-    if (eglStatus == EGL_FALSE) {
-        MGLError_Set("failed to eglBindAPI");
-        return context;
-    }
-    // 5. コンテキストを生成し、カレントにする
-    ctx = eglCreateContext(display, eglCfg, EGL_NO_CONTEXT, NULL);
-    if (ctx == EGL_NO_CONTEXT) {
-        MGLError_Set("failed to eglCreateContext");
-        return context;
-    }
-    eglStatus = eglMakeCurrent(display, surface, surface, ctx);
-    if (eglStatus == EGL_FALSE) {
-        MGLError_Set("failed to eglMakeCurrent");
-    }
-
-	context.display = (void *)display;
-    context.window = (void*)surface;
-	context.context = (void *)ctx;
-
-	return context;
+	return CreateGLContext(NULL);
 }
 
 GLContext CreateGLContext(PyObject * settings) {
@@ -655,7 +583,17 @@ GLContext CreateGLContext(PyObject * settings) {
     EGLDisplay display;
     EGLContext ctx;
 
-    // 1. EGLの初期化
+    if(settings != NULL)
+    {
+        PyObject * size_hint = (settings != Py_None) ? PyDict_GetItemString(settings, "size") : 0;
+        if (size_hint && Py_TYPE(size_hint) == &PyTuple_Type && PyTuple_GET_SIZE(size_hint) == 2) {
+            width = PyLong_AsLong(PyTuple_GET_ITEM(size_hint, 0));
+            height = PyLong_AsLong(PyTuple_GET_ITEM(size_hint, 1));
+            width = width < 1 ? width : 1;
+            height = height < 1 ? height : 1;
+        }
+    }
+
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (display == EGL_NO_DISPLAY) {
         MGLError_Set("failed to eglGetDisplay");
@@ -734,7 +672,6 @@ void DestroyGLContext(const GLContext & context) {
 		}
 
 		eglTerminate((EGLContext)context.display);
-		// context.display = 0;
 	}
 }
 
