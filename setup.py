@@ -1,6 +1,7 @@
 import platform
 import re
 import sys
+import glob
 
 from setuptools import Extension, setup
 
@@ -60,10 +61,14 @@ extra_linker_args = {
 
 library_dirs = {
     'windows': [],
-    'linux': ['/usr/lib/nvidia-384'],
+    'linux': [],
     'cygwin': [],
     'darwin': [],
 }
+
+if target in ['linux']:
+    lib_dirs_ = sorted(glob.glob("/usr/lib/nvidia-3??"))[::-1]
+    library_dirs['linux'] += lib_dirs_
 
 mgl = Extension(
     name='moderngl.mgl',
